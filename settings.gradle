@@ -1,0 +1,6 @@
+rootProject.name = 'ignite-shuffle-service'
+
+include ':ignite-shuffle-service'
+include ':ignite-client-test'
+include ':ignite-shuffle-spark-api'
+include ':ignite-shuffle-spark-io'

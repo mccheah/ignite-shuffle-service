@@ -1,0 +1,64 @@
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url "http://palantir.bintray.com/releases" }
+    }
+
+    dependencies {
+        classpath 'com.palantir.baseline:gradle-baseline-java:0.43.0'
+        classpath 'com.palantir.gradle.conjure:gradle-conjure:4.6.2'
+        classpath 'com.palantir.sls-packaging:gradle-sls-packaging:2.21.1'
+        classpath 'gradle.plugin.com.palantir.gradle.gitversion:gradle-git-version:0.11.0'
+        classpath 'gradle.plugin.org.inferred:gradle-processors:2.1.0'
+        classpath 'org.apache.spark:spark-docker-image-generator:2.5.0-palantir.4'
+    }
+}
+
+apply plugin: 'com.palantir.baseline'
+apply plugin: 'com.palantir.git-version'
+
+allprojects {
+    version gitVersion()
+    group 'com.palantir.ignite'
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "http://palantir.bintray.com/releases" }
+    }
+
+    dependencyRecommendations {
+        mavenBom module: "org.apache.spark:spark-dist_2.11-hadoop-palantir:2.5.0-palantir.5"
+        map recommendations: [ 'org.apache.spark:*': '3.0.0-SNAPSHOT', 'com.google.guava:*': '23.5-jre', 'org.scala-lang:*': '2.11.12' ]
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            failOnVersionConflict()
+        }
+        exclude group: 'org.apache.geronimo.specs', module: 'geronimo-jcache_1.0_spec'
+    }
+}
+
+configure(subprojects) {
+    apply plugin: 'java-library'
+    apply plugin: 'org.inferred.processors'
+
+    tasks.withType(JavaCompile) {
+        options.compilerArgs += ['-Werror']
+    }
+
+    tasks.check.dependsOn(javadoc)
+    sourceCompatibility = 1.8
+
+    configurations.all {
+        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+            if (details.requested.group == 'org.glassfish.hk2.external' && details.requested.name == 'javax.inject') {
+                details.useTarget group: 'javax.inject', name: 'javax.inject', version: '1'
+                details.because "The glassfish shaded copy is only necessary for OSGI environments, which we do not endorse."
+            }
+        }
+    }
+}
+

@@ -1,0 +1,24 @@
+plugins {
+    id 'com.palantir.docker' version '0.21.0'
+}
+apply plugin: 'com.palantir.sls-java-service-distribution'
+
+dependencies {
+    compile project(':ignite-shuffle-spark-api')
+    compile 'org.apache.ignite:ignite-core'
+    compile 'org.apache.ignite:ignite-kubernetes'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
+
+    testCompile 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
+    testCompile 'junit:junit'
+    testCompile 'org.assertj:assertj-core'
+    testCompile 'org.mockito:mockito-core'
+
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'org.immutables:value::annotations'
+}
+
+distribution {
+    serviceName project.name
+    mainClass 'com.palantir.ignite.IgniteRunner'
+}

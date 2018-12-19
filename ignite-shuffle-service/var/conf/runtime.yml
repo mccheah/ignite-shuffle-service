@@ -1,0 +1,5 @@
+data-persistence-path: /tmp/ignite/ignite-data
+kubernetes-master-url: https://kubernetes.default.svc
+kubernetes-namespace: ignite
+kubernetes-service-name: ignite
+work-path: /tmp/ignite/ignite-work

@@ -1,0 +1,16 @@
+dependencies {
+    compile project(':ignite-shuffle-spark-api')
+    compile 'org.apache.ignite:ignite-core'
+    compile 'org.apache.ignite:ignite-kubernetes'
+    compile 'org.apache.spark:spark-core_2.11'
+    compile 'org.scala-lang.modules:scala-java8-compat_2.11'
+
+    testCompile 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
+    testCompile 'junit:junit'
+    testCompile 'org.assertj:assertj-core'
+    testCompile 'org.mockito:mockito-core'
+
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'org.immutables:value::annotations'
+}
+

@@ -1,0 +1,26 @@
+apply plugin: 'org.apache.spark.deploy.kubernetes.docker.gradle'
+
+dependencies {
+    compile project(':ignite-shuffle-spark-io')
+    compile 'org.apache.spark:spark-sql_2.11'
+    compile 'org.apache.ignite:ignite-core'
+    compile 'org.apache.ignite:ignite-kubernetes'
+    runtime 'org.apache.spark:spark-kubernetes_2.11'
+
+    testCompile 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
+    testCompile 'junit:junit'
+    testCompile 'org.assertj:assertj-core'
+    testCompile 'org.mockito:mockito-core'
+
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'org.immutables:value::annotations'
+}
+
+def baseAlpineImageVersion = dependencyRecommendations.getRecommendedVersion('com.palantir.docker', 'docker-base-alpine-image')
+
+sparkDocker {
+    baseImage "openjdk:8-alpine"
+    imageName "igniteshuffle/ignite-test-spark"
+    tags project.version.toString()
+}
+
