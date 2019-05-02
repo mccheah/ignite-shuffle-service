@@ -18,9 +18,11 @@ package com.palantir.ignite.spark.shuffle.io;
 
 import com.palantir.ignite.SparkShufflePartition;
 import com.palantir.ignite.SparkShufflePartitionBlock;
+import java.io.IOException;
+import java.io.InputStream;
 import org.apache.ignite.IgniteCache;
-import org.apache.spark.shuffle.api.ShufflePartitionReader;
-import org.apache.spark.shuffle.api.ShuffleReadSupport;
+import org.apache.spark.api.shuffle.ShuffleBlockInfo;
+import org.apache.spark.api.shuffle.ShuffleReadSupport;
 
 public final class IgniteReadSupport implements ShuffleReadSupport {
 
@@ -35,7 +37,8 @@ public final class IgniteReadSupport implements ShuffleReadSupport {
     }
 
     @Override
-    public ShufflePartitionReader newPartitionReader(String appId, int shuffleId, int mapId) {
-        return new IgniteShufflePartitionReader(dataCache, metadataCache, appId, shuffleId, mapId);
+    public Iterable<InputStream> getPartitionReaders(Iterable<ShuffleBlockInfo> blockMetadata) throws IOException {
+
+        return null;
     }
 }

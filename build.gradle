@@ -30,7 +30,12 @@ allprojects {
 
     dependencyRecommendations {
         mavenBom module: "org.apache.spark:spark-dist_2.11-hadoop-palantir:2.5.0-palantir.5"
-        map recommendations: [ 'org.apache.spark:*': '3.0.0-SNAPSHOT', 'com.google.guava:*': '23.5-jre', 'org.scala-lang:*': '2.11.12' ]
+        map recommendations: [
+            'org.apache.spark:*': '3.0.0-palantir.18-16-g3a760e70d9',
+            'com.google.guava:*': '23.5-jre',
+            'org.scala-lang:*': '2.11.12',
+            'com.palantir.safe-logging:preconditions': '1.8.2',
+            'com.palantir.safe-logging:safe-logging': '1.8.2' ]
     }
 
     configurations.all {
