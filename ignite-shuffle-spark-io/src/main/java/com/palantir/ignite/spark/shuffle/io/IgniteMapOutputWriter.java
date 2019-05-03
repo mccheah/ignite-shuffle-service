@@ -16,57 +16,110 @@
 
 package com.palantir.ignite.spark.shuffle.io;
 
+import com.google.common.collect.Maps;
 import com.palantir.ignite.SparkShufflePartition;
 import com.palantir.ignite.SparkShufflePartitionBlock;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.ignite.IgniteCache;
-import org.apache.spark.shuffle.api.ShuffleMapOutputWriter;
-import org.apache.spark.shuffle.api.ShufflePartitionWriter;
+import org.apache.ignite.IgniteDataStreamer;
+import org.apache.spark.api.java.Optional;
+import org.apache.spark.api.shuffle.MapShuffleLocations;
+import org.apache.spark.api.shuffle.ShuffleMapOutputWriter;
+import org.apache.spark.api.shuffle.ShufflePartitionWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
 
-    private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
+    private static final Logger LOG = LoggerFactory.getLogger(IgniteMapOutputWriter.class);
+
     private final IgniteCache<SparkShufflePartition, Long> metadataCache;
+    private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
+    private final IgniteDataStreamer<SparkShufflePartitionBlock, byte[]> dataStreamer;
+    private final Map<SparkShufflePartition, IgniteShufflePartitionWriter> openedWriters;
     private final String appId;
     private final int shuffleId;
     private final int mapId;
     private final int blockSize;
+    private final int numPartitions;
 
     public IgniteMapOutputWriter(
-            IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache,
             IgniteCache<SparkShufflePartition, Long> metadataCache,
+            IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache,
+            IgniteDataStreamer<SparkShufflePartitionBlock, byte[]> dataStreamer,
             String appId,
             int shuffleId,
             int mapId,
-            int blockSize) {
-        this.dataCache = dataCache;
+            int blockSize,
+            int numPartitions) {
         this.metadataCache = metadataCache;
+        this.dataCache = dataCache;
+        this.dataStreamer = dataStreamer;
         this.appId = appId;
         this.shuffleId = shuffleId;
         this.mapId = mapId;
         this.blockSize = blockSize;
+        this.numPartitions = numPartitions;
+        this.openedWriters = Maps.newHashMapWithExpectedSize(numPartitions);
     }
 
     @Override
-    public ShufflePartitionWriter newPartitionWriter(int partitionId) {
-        return new IgniteShufflePartitionWriter(
+    public ShufflePartitionWriter getPartitionWriter(int partitionId) {
+        SparkShufflePartition partition = SparkShufflePartition.builder()
+                .shuffleId(shuffleId)
+                .mapId(mapId)
+                .appId(appId)
+                .partitionId(partitionId)
+                .build();
+        IgniteShufflePartitionWriter partWriter = new IgniteShufflePartitionWriter(
                 SparkShufflePartition.builder()
                         .appId(appId)
                         .shuffleId(shuffleId)
                         .mapId(mapId)
                         .partitionId(partitionId)
                         .build(),
+                dataStreamer,
                 dataCache,
-                metadataCache,
                 blockSize);
+        openedWriters.put(partition, partWriter);
+        return partWriter;
     }
 
     @Override
-    public void commitAllPartitions() {
-
+    public Optional<MapShuffleLocations> commitAllPartitions() {
+        dataStreamer.close();
+        Map<SparkShufflePartition, Long> numBlocksPerPartition = Maps.newHashMap();
+        numBlocksPerPartition.putAll(Maps.transformValues(
+                openedWriters,
+                IgniteShufflePartitionWriter::getNumBlocksInPartition));
+        numBlocksPerPartition.putAll(IntStream.range(0, numPartitions)
+                .mapToObj(partitionId ->
+                        SparkShufflePartition.builder()
+                                .appId(appId)
+                                .shuffleId(shuffleId)
+                                .mapId(mapId)
+                                .partitionId(partitionId)
+                                .build())
+                .filter(part -> !numBlocksPerPartition.containsKey(part))
+                .collect(Collectors.toMap(Function.identity(), ignored -> 0L)));
+        metadataCache.putAll(numBlocksPerPartition);
+        openedWriters.clear();
+        return Optional.empty();
     }
 
     @Override
-    public void abort(Exception exception) {
-
+    public void abort(Throwable error) {
+        dataStreamer.close();
+        openedWriters.values().forEach(writer -> {
+            try {
+                writer.revertWrites();
+            } catch (Exception e) {
+                LOG.warn("Failed to revert some partition writes for a partition.", e);
+            }
+        });
+        openedWriters.clear();
     }
 }

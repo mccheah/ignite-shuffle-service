@@ -12,5 +12,8 @@ dependencies {
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
+    testCompile 'org.assertj:assertj-core'
+    testCompile 'org.mockito:mockito-core'
+    testCompile 'org.mockito:mockito-inline'
 }
 

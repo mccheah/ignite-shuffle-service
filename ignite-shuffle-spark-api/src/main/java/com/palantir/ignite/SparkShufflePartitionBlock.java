@@ -17,6 +17,7 @@
 package com.palantir.ignite;
 
 import java.io.Serializable;
+import java.util.Objects;
 import org.apache.ignite.cache.affinity.AffinityKeyMapped;
 
 public final class SparkShufflePartitionBlock implements Serializable {
@@ -43,5 +44,20 @@ public final class SparkShufflePartitionBlock implements Serializable {
 
     public static SparkShufflePartitionBlock of(SparkShufflePartition partition, long blockNumber) {
         return new SparkShufflePartitionBlock(partition, blockNumber);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(partition, blockNumber);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof SparkShufflePartitionBlock)) {
+            return false;
+        }
+        SparkShufflePartitionBlock asBlock = (SparkShufflePartitionBlock) other;
+        return Objects.equals(partition, asBlock.partition)
+                && Objects.equals(blockNumber, asBlock.blockNumber);
     }
 }

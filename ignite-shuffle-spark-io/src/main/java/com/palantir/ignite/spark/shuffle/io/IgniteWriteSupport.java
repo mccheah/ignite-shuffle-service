@@ -18,33 +18,44 @@ package com.palantir.ignite.spark.shuffle.io;
 
 import com.palantir.ignite.SparkShufflePartition;
 import com.palantir.ignite.SparkShufflePartitionBlock;
+import java.util.function.Supplier;
 import org.apache.ignite.IgniteCache;
-import org.apache.spark.shuffle.api.ShuffleMapOutputWriter;
-import org.apache.spark.shuffle.api.ShuffleWriteSupport;
+import org.apache.ignite.IgniteDataStreamer;
+import org.apache.spark.api.shuffle.ShuffleMapOutputWriter;
+import org.apache.spark.api.shuffle.ShuffleWriteSupport;
 
 public final class IgniteWriteSupport implements ShuffleWriteSupport {
 
     private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
     private final IgniteCache<SparkShufflePartition, Long> metadataCache;
+    private final Supplier<IgniteDataStreamer<SparkShufflePartitionBlock, byte[]>> dataStreamerSupplier;
     private final int blockSize;
+    private final String appId;
 
     public IgniteWriteSupport(
             IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache,
             IgniteCache<SparkShufflePartition, Long> metadataCache,
-            int blockSize) {
+            Supplier<IgniteDataStreamer<SparkShufflePartitionBlock, byte[]>> dataStreamerSupplier,
+            int blockSize,
+            String appId) {
         this.dataCache = dataCache;
         this.metadataCache = metadataCache;
+        this.dataStreamerSupplier = dataStreamerSupplier;
         this.blockSize = blockSize;
+        this.appId = appId;
     }
 
     @Override
-    public ShuffleMapOutputWriter newMapOutputWriter(String appId, int shuffleId, int mapId) {
+    public ShuffleMapOutputWriter createMapOutputWriter(
+            int shuffleId, int mapId, int numPartitions) {
         return new IgniteMapOutputWriter(
-                dataCache,
                 metadataCache,
+                dataCache,
+                dataStreamerSupplier.get(),
                 appId,
                 shuffleId,
                 mapId,
-                blockSize);
+                blockSize,
+                numPartitions);
     }
 }

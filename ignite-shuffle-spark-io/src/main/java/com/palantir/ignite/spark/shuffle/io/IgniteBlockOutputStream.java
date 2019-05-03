@@ -16,14 +16,12 @@
 
 package com.palantir.ignite.spark.shuffle.io;
 
-import com.google.common.base.Preconditions;
 import com.palantir.ignite.SparkShufflePartition;
 import com.palantir.ignite.SparkShufflePartitionBlock;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.IgniteDataStreamer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,34 +29,34 @@ public final class IgniteBlockOutputStream extends OutputStream {
 
     private static final Logger log = LoggerFactory.getLogger(IgniteBlockOutputStream.class);
 
-    private final IgniteCache<SparkShufflePartitionBlock, byte[]> partitionBlocksDataCache;
+    private final IgniteDataStreamer<SparkShufflePartitionBlock, byte[]> dataStreamer;
     private final SparkShufflePartition partition;
     private final int blockSize;
-    private final ByteBuffer buffer;
-    private final AtomicLong committedBlockCount;
-    private final AtomicLong totalPartitionSize;
-    private final AtomicInteger currentBlockSize;
+
+    private long currentBlockIndex;
+    private ByteBuffer buffer;
+    private long totalPartitionSize;
+    private int currentBlockSize;
 
     public IgniteBlockOutputStream(
-            IgniteCache<SparkShufflePartitionBlock, byte[]> partitionBlocksDataCache,
+            IgniteDataStreamer<SparkShufflePartitionBlock, byte[]> dataStreamer,
             SparkShufflePartition partition,
-            int blockSize,
-            AtomicLong committedBlockCount,
-            AtomicLong totalPartitionSize) {
-        this.partitionBlocksDataCache = partitionBlocksDataCache;
+            int blockSize) {
+        this.dataStreamer = dataStreamer;
         this.partition = partition;
         this.blockSize = blockSize;
         this.buffer = ByteBuffer.allocate(blockSize);
-        this.committedBlockCount = committedBlockCount;
-        this.totalPartitionSize = totalPartitionSize;
-        this.currentBlockSize = new AtomicInteger(0);
+        this.totalPartitionSize = 0L;
+        this.currentBlockSize = 0;
+        this.currentBlockIndex = 0L;
     }
 
     @Override
     public void write(int b) {
-        buffer.putInt(b);
-        totalPartitionSize.getAndIncrement();
-        if (currentBlockSize.incrementAndGet() == blockSize) {
+        buffer.put((byte) b);
+        totalPartitionSize++;
+        currentBlockSize++;
+        if (currentBlockSize == blockSize) {
             flush();
         }
     }
@@ -66,27 +64,44 @@ public final class IgniteBlockOutputStream extends OutputStream {
     @Override
     @SuppressWarnings("Slf4jConstantLogMessage")
     public void flush() {
+        buffer.flip();
         byte[] array = buffer.array();
-        Preconditions.checkArgument(array.length == currentBlockSize.get(),
-                "Backing array doesn't have the right number of bytes.");
-        long currentBlock = committedBlockCount.getAndIncrement();
-        SparkShufflePartitionBlock partitionBlock = SparkShufflePartitionBlock.of(partition, currentBlock);
+        byte[] resolvedBlockArray;
+        if (currentBlockSize < array.length) {
+            resolvedBlockArray = new byte[buffer.remaining()];
+            buffer.get(resolvedBlockArray);
+        } else {
+            resolvedBlockArray = array;
+        }
+        SparkShufflePartitionBlock partitionBlock = SparkShufflePartitionBlock.of(partition, currentBlockIndex);
         log.info(
                 String.format(
                         "Putting block # %d for partition (app id: %s, shuffle id: %d, map id: %d, reduce id: %d",
-                        currentBlock,
+                        currentBlockIndex,
                         partitionBlock.partitionId().appId(),
                         partitionBlock.partitionId().shuffleId(),
                         partitionBlock.partitionId().mapId(),
                         partitionBlock.partitionId().partitionId()));
-        partitionBlocksDataCache.put(partitionBlock, array);
-        buffer.reset();
-        currentBlockSize.set(0);
+        currentBlockIndex += 1;
+        dataStreamer.addData(partitionBlock, resolvedBlockArray);
+        buffer = ByteBuffer.allocate(blockSize);
+        currentBlockSize = 0;
     }
 
     @Override
     public void close() {
-        buffer.limit(currentBlockSize.get());
-        flush();
+        buffer.limit(currentBlockSize);
+        if (currentBlockSize > 0) {
+            flush();
+        }
+        this.buffer = null;
+    }
+
+    public long getNumCommittedBlocks() {
+        return currentBlockIndex;
+    }
+
+    public long getTotalPartitionSize() {
+        return totalPartitionSize;
     }
 }
