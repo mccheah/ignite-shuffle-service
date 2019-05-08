@@ -31,28 +31,33 @@ public final class IgniteRunner {
     private IgniteRunner() {}
 
     public static void main(String[] args) throws IOException  {
-        IgniteRuntimeConfig current = new ObjectMapper(new YAMLFactory()).readValue(
-                Paths.get("var", "conf", "runtime.yml").toFile(),
-                IgniteRuntimeConfig.class);
-        TcpDiscoverySpi discoverySpi = new TcpDiscoverySpi();
-        TcpDiscoveryKubernetesIpFinder ipFinder = new TcpDiscoveryKubernetesIpFinder();
-        ipFinder.setMasterUrl(current.kubernetesMasterUrl().toString());
-        ipFinder.setNamespace(current.kubernetesNamespace());
-        ipFinder.setServiceName(current.kubernetesServiceName());
-        discoverySpi.setIpFinder(ipFinder);
-        IgniteConfiguration igniteConfig = new IgniteConfiguration()
-                .setWorkDirectory(current.workPath().toFile().getAbsolutePath())
-                .setDiscoverySpi(discoverySpi)
-                .setDataStorageConfiguration(new DataStorageConfiguration()
-                        .setStoragePath(current.dataPersistencePath().toFile().getAbsolutePath()));
-        Ignition.start(igniteConfig);
-        boolean interrupted = false;
-        while (!interrupted) {
-            try {
-                Thread.sleep(Integer.MAX_VALUE);
-            } catch (InterruptedException e) {
-                interrupted = true;
+        try {
+            IgniteRuntimeConfig current = new ObjectMapper(new YAMLFactory()).readValue(
+                    Paths.get("var", "conf", "runtime.yml").toFile(),
+                    IgniteRuntimeConfig.class);
+            TcpDiscoverySpi discoverySpi = new TcpDiscoverySpi();
+            TcpDiscoveryKubernetesIpFinder ipFinder = new TcpDiscoveryKubernetesIpFinder();
+            ipFinder.setMasterUrl(current.kubernetesMasterUrl().toString());
+            ipFinder.setNamespace(current.kubernetesNamespace());
+            ipFinder.setServiceName(current.kubernetesServiceName());
+            discoverySpi.setIpFinder(ipFinder);
+            IgniteConfiguration igniteConfig = new IgniteConfiguration()
+                    .setWorkDirectory(current.workPath().toFile().getAbsolutePath())
+                    .setDiscoverySpi(discoverySpi)
+                    .setDataStorageConfiguration(new DataStorageConfiguration()
+                            .setStoragePath(current.dataPersistencePath().toFile().getAbsolutePath()));
+            Ignition.start(igniteConfig);
+            boolean interrupted = false;
+            while (!interrupted) {
+                try {
+                    Thread.sleep(Integer.MAX_VALUE);
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 }
