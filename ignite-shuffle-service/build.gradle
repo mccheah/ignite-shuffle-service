@@ -1,7 +1,5 @@
-plugins {
-    id 'com.palantir.docker' version '0.21.0'
-}
 apply plugin: 'com.palantir.sls-java-service-distribution'
+apply plugin: 'com.palantir.docker'
 
 dependencies {
     compile project(':ignite-shuffle-spark-api')
@@ -22,3 +20,11 @@ distribution {
     serviceName project.name
     mainClass 'com.palantir.ignite.IgniteRunner'
 }
+
+docker {
+    name "palantir.com/ignite-shuffle-service"
+    tags project.version
+    files tasks.distTar.outputs
+}
+
+tasks.docker.dependsOn tasks.distTar
