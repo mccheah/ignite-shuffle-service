@@ -48,5 +48,7 @@ generated_src/
 generated_testSrc/
 generated/
 
+ignite-shuffle-service/Dockerfile
+
 # Blueprint theme
 __init__.pyc
