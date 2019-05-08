@@ -16,6 +16,7 @@
 
 package com.palantir.ignite;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.net.URI;
 import java.nio.file.Path;
@@ -26,13 +27,18 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableIgniteRuntimeConfig.class)
 public interface IgniteRuntimeConfig {
 
+    @JsonProperty("data-persistence-path")
     Path dataPersistencePath();
 
+    @JsonProperty("work-path")
     Path workPath();
 
+    @JsonProperty("kubernetes-master-url")
     URI kubernetesMasterUrl();
 
+    @JsonProperty("kubernetes-service-name")
     String kubernetesServiceName();
 
+    @JsonProperty("kubernetes-namespace")
     String kubernetesNamespace();
 }

@@ -31,9 +31,10 @@ tasks.docker.dependsOn tasks.distTar
 
 def dockerFileContents = """
 FROM openjdk:8-alpine
+RUN apk add bash
 ADD ignite-shuffle-service-${project.version}.sls.tgz .
-WORKDIR /ignite-shuffle-service-${project.version}
-ENTRYPOINT [ "/ignite-shuffle-service-${project.version}/service/bin/init.sh", "start" ]
+WORKDIR "/ignite-shuffle-service-${project.version}"
+ENTRYPOINT [ "service/bin/init.sh", "start" ]
 """
 
 task writeDockerFile {
