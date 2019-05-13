@@ -17,6 +17,8 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.configuration.DataRegionConfiguration;
+import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.kubernetes.TcpDiscoveryKubernetesIpFinder;
@@ -90,6 +92,9 @@ public final class IgniteShuffleExecutorComponents implements ShuffleExecutorCom
         IgniteConfiguration igniteConfig = new IgniteConfiguration()
                 .setDiscoverySpi(discoverySpi)
                 .setWorkDirectory(tempWorkDir.getAbsolutePath())
+                .setDataStorageConfiguration(new DataStorageConfiguration()
+                        .setDefaultDataRegionConfiguration(new DataRegionConfiguration()
+                                .setPersistenceEnabled(true)))
                 .setClientMode(true);
         ignite = Ignition.start(igniteConfig);
         dataCache = ignite.getOrCreateCache(
