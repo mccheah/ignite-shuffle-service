@@ -49,7 +49,7 @@ public final class IgniteRunner {
                             .setStoragePath(current.dataPersistencePath().toFile().getAbsolutePath())
                             .setDefaultDataRegionConfiguration(new DataRegionConfiguration()
                                     .setPersistenceEnabled(true)));
-            Ignition.start(igniteConfig);
+            Ignition.start(igniteConfig).cluster().active(true);
             boolean interrupted = false;
             while (!interrupted) {
                 try {

@@ -19,18 +19,12 @@ package com.palantir.ignite.spark.shuffle.io;
 import com.palantir.ignite.SparkShufflePartition;
 import com.palantir.ignite.SparkShufflePartitionBlock;
 import java.util.function.Supplier;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
-import org.apache.ignite.transactions.Transaction;
 import org.apache.spark.api.shuffle.ShuffleMapOutputWriter;
 import org.apache.spark.api.shuffle.ShuffleWriteSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class IgniteWriteSupport implements ShuffleWriteSupport {
-
-    private static final Logger LOG = LoggerFactory.getLogger(IgniteWriteSupport.class);
 
     private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
     private final IgniteCache<SparkShufflePartition, Long> metadataCache;
