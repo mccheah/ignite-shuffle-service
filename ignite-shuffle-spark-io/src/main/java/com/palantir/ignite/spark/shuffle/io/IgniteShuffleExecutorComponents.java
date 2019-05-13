@@ -118,7 +118,6 @@ public final class IgniteShuffleExecutorComponents implements ShuffleExecutorCom
     @Override
     public ShuffleWriteSupport writes() {
         return new IgniteWriteSupport(
-                ignite,
                 dataCache,
                 metadataCache,
                 () -> ignite.dataStreamer(dataCache.getName()),

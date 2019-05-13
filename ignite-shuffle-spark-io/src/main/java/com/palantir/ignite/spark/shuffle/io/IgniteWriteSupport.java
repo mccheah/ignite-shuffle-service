@@ -32,7 +32,6 @@ public final class IgniteWriteSupport implements ShuffleWriteSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(IgniteWriteSupport.class);
 
-    private final Ignite ignite;
     private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
     private final IgniteCache<SparkShufflePartition, Long> metadataCache;
     private final Supplier<IgniteDataStreamer<SparkShufflePartitionBlock, byte[]>> dataStreamerSupplier;
@@ -40,13 +39,11 @@ public final class IgniteWriteSupport implements ShuffleWriteSupport {
     private final String appId;
 
     public IgniteWriteSupport(
-            Ignite ignite,
             IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache,
             IgniteCache<SparkShufflePartition, Long> metadataCache,
             Supplier<IgniteDataStreamer<SparkShufflePartitionBlock, byte[]>> dataStreamerSupplier,
             int blockSize,
             String appId) {
-        this.ignite = ignite;
         this.dataCache = dataCache;
         this.metadataCache = metadataCache;
         this.dataStreamerSupplier = dataStreamerSupplier;
@@ -57,25 +54,14 @@ public final class IgniteWriteSupport implements ShuffleWriteSupport {
     @Override
     public ShuffleMapOutputWriter createMapOutputWriter(
             int shuffleId, int mapId, int numPartitions) {
-        Transaction mapOutputTransaction = ignite.transactions().txStart();
-        try {
-            return new IgniteMapOutputWriter(
-                    mapOutputTransaction,
-                    metadataCache,
-                    dataCache,
-                    dataStreamerSupplier.get(),
-                    appId,
-                    shuffleId,
-                    mapId,
-                    blockSize,
-                    numPartitions);
-        } catch (Exception e) {
-            try {
-                mapOutputTransaction.close();
-            } catch (Exception e2) {
-                LOG.warn("Failed to abort map output transaction.", e2);
-            }
-            throw e;
-        }
+        return new IgniteMapOutputWriter(
+                metadataCache,
+                dataCache,
+                dataStreamerSupplier.get(),
+                appId,
+                shuffleId,
+                mapId,
+                blockSize,
+                numPartitions);
     }
 }

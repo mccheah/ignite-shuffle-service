@@ -57,7 +57,6 @@ public final class IgniteTest {
         blockFetchExecutor = Executors.newCachedThreadPool(
                 new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ignite-block-fetch").build());
         writeSupport = new IgniteWriteSupport(
-                dataCache,
                 metadataCache,
                 () -> ignite.dataStreamer(IGNITE_DATA_CACHE_NAME),
                 () -> ignite.dataStreamer(metadataCache.getName()),
