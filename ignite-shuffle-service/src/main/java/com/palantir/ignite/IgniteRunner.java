@@ -21,6 +21,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.nio.file.Paths;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
@@ -45,7 +46,9 @@ public final class IgniteRunner {
                     .setWorkDirectory(current.workPath().toFile().getAbsolutePath())
                     .setDiscoverySpi(discoverySpi)
                     .setDataStorageConfiguration(new DataStorageConfiguration()
-                            .setStoragePath(current.dataPersistencePath().toFile().getAbsolutePath()));
+                            .setStoragePath(current.dataPersistencePath().toFile().getAbsolutePath())
+                            .setDefaultDataRegionConfiguration(new DataRegionConfiguration()
+                                    .setPersistenceEnabled(true)));
             Ignition.start(igniteConfig);
             boolean interrupted = false;
             while (!interrupted) {
