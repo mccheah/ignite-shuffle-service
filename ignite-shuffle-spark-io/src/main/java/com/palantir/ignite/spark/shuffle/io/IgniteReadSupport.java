@@ -113,7 +113,6 @@ public final class IgniteReadSupport implements ShuffleReadSupport {
         }
 
         private void stop() {
-            LOG.info("Block fetch shutting down.");
             isStopped.set(true);
             if (blockFetchTask != null) {
                 blockFetchTask.cancel(true);
@@ -131,7 +130,6 @@ public final class IgniteReadSupport implements ShuffleReadSupport {
         }
 
         @Override
-        @SuppressWarnings("Slf4jConstantLogMessage")
         public InputStream next() {
             if (blockFetchTask == null) {
                 blockFetchTask = blockFetcherExecutor.submit(this::blockFetchLoop);
@@ -139,9 +137,6 @@ public final class IgniteReadSupport implements ShuffleReadSupport {
 
             SparkShufflePartition partToReturn = partitionsToReturn.pop();
             if (!numBlocksPerPartition.containsKey(partToReturn)) {
-                LOG.info(
-                        String.format("Number of blocks per partition not found for %s, assuming it's 0.",
-                                partToReturn));
                 return new ByteArrayInputStream(new byte[]{});
             }
             Iterator<InputStream> partitionBlocksInputStream = new Iterator<InputStream>() {
@@ -152,22 +147,17 @@ public final class IgniteReadSupport implements ShuffleReadSupport {
                 }
 
                 @Override
-                @SuppressWarnings("Slf4jConstantLogMessage")
                 public InputStream next() {
                     try {
                         SparkShufflePartitionBlock blockKey = SparkShufflePartitionBlock.of(
                                 partToReturn, curBlockIndex);
                         curBlockIndex++;
                         while (!currentBufferedBlocks.containsKey(blockKey) && !isStopped.get()) {
-                            LOG.info(String.format("Missing block %s locally, checking if fetched from remote.",
-                                    blockKey));
                             try {
                                 currentBufferedBlocks.putAll(outstandingBlockRequests.take().get());
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
-                            LOG.info(String.format("Following blocks are available for processing: %s",
-                                    currentBufferedBlocks.keySet()));
                         }
                         byte[] blockBytes = !isStopped.get() ? currentBufferedBlocks.remove(blockKey) : new byte[] {};
                         return new ByteArrayInputStream(blockBytes);
@@ -178,7 +168,6 @@ public final class IgniteReadSupport implements ShuffleReadSupport {
                         } catch (Exception e2) {
                             LOG.warn("Failed to cancel block fetch task upon failing to retrieve block.", e2);
                         }
-                        LOG.warn("Failure to fetch blocks.", e);
                         throw e;
                     }
                 }
@@ -186,47 +175,33 @@ public final class IgniteReadSupport implements ShuffleReadSupport {
             return new SequenceInputStream(new IteratorEnumeration<>(partitionBlocksInputStream));
         }
 
-        @SuppressWarnings("Slf4jConstantLogMessage")
         private void blockFetchLoop() {
-            LOG.info(String.format("Starting block fetch loop for parts: %s", partitionsToFetch));
             Set<SparkShufflePartitionBlock> currentBlocksToFetch =
                     Sets.newHashSetWithExpectedSize(numBlocksPerBatch);
 
             while (!isStopped.get() && !partitionsToFetch.isEmpty()) {
                 SparkShufflePartition currentPartition = partitionsToFetch.pop();
-                LOG.info(String.format("Beginning block fetches for partition %s.", currentPartition));
                 if (numBlocksPerPartition.containsKey(currentPartition)) {
                     long numBlocksInPartition = numBlocksPerPartition.get(currentPartition);
-                    LOG.info(String.format("Num blocks for partition %s: %d.", currentPartition, numBlocksInPartition));
                     for (long i = 0; i < numBlocksInPartition && !isStopped.get(); i++) {
-                        LOG.info(String.format("Adding block to batch fetch: %s, %d", currentPartition, i));
                         currentBlocksToFetch.add(SparkShufflePartitionBlock.of(currentPartition, i));
                         if (currentBlocksToFetch.size() >= numBlocksPerBatch && !isStopped.get()) {
-                            LOG.info(String.format("Pushing batch: %s", currentBlocksToFetch));
                             pushBlocks(currentBlocksToFetch);
                             currentBlocksToFetch.clear();
                         }
-                        LOG.info(String.format("Finished processing block %s, %d", currentPartition, i));
                     }
-                    LOG.info(String.format("Buffered or pushed requests for partition %s.", currentPartition));
                 }
             }
 
             if (!currentBlocksToFetch.isEmpty() && !isStopped.get()) {
-                LOG.info(String.format("Pushing leftover blocks %s.", currentBlocksToFetch));
                 pushBlocks(currentBlocksToFetch);
-            } else {
-                LOG.info("Done fetching blocks, and no blocks were left over.");
             }
         }
 
-        @SuppressWarnings("Slf4jConstantLogMessage")
         private void pushBlocks(Set<SparkShufflePartitionBlock> currentBlocksToFetch) {
-            LOG.info(String.format("Fetching blocks from cache: %s", currentBlocksToFetch));
             try {
                 outstandingBlockRequests.put(dataCache.getAllAsync(ImmutableSet.copyOf(currentBlocksToFetch)));
-            } catch (Exception e) {
-                LOG.warn("Failed to push blocks.", e);
+            } catch (InterruptedException e) {
                 if (!isStopped.get()) {
                     throw new RuntimeException(e);
                 } else {
