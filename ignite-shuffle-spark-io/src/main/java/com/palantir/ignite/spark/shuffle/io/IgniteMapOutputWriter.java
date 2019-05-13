@@ -105,7 +105,7 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
                                 .build())
                 .filter(part -> !numBlocksPerPartition.containsKey(part))
                 .collect(Collectors.toMap(Function.identity(), ignored -> 0L)));
-        metadataCache.putAll(numBlocksPerPartition);
+        metadataCache.putAllAsync(numBlocksPerPartition).get();
         openedWriters.clear();
         return Optional.empty();
     }
