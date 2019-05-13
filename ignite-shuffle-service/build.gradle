@@ -34,7 +34,7 @@ FROM openjdk:8-alpine
 RUN apk add bash
 ADD ignite-shuffle-service-${project.version}.sls.tgz .
 WORKDIR "/ignite-shuffle-service-${project.version}"
-ENTRYPOINT [ "service/bin/init.sh", "start" ]
+ENTRYPOINT [ "service/bin/init.sh", "console" ]
 """
 
 task writeDockerFile {
