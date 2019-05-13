@@ -110,7 +110,8 @@ public final class IgniteShuffleExecutorComponents implements ShuffleExecutorCom
         return new IgniteWriteSupport(
                 dataCache,
                 metadataCache,
-                () -> ignite.dataStreamer(dataCacheName),
+                () -> ignite.dataStreamer(dataCache.getName()),
+                () -> ignite.dataStreamer(metadataCache.getName()),
                 blockSize,
                 appId);
     }

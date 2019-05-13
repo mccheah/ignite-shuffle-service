@@ -60,6 +60,7 @@ public final class IgniteTest {
                 dataCache,
                 metadataCache,
                 () -> ignite.dataStreamer(IGNITE_DATA_CACHE_NAME),
+                () -> ignite.dataStreamer(metadataCache.getName()),
                 BLOCK_SIZE,
                 APP_ID);
         readSupport = new IgniteReadSupport(

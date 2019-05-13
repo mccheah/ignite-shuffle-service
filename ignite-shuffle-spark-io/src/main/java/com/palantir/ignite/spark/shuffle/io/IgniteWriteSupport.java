@@ -29,6 +29,7 @@ public final class IgniteWriteSupport implements ShuffleWriteSupport {
     private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
     private final IgniteCache<SparkShufflePartition, Long> metadataCache;
     private final Supplier<IgniteDataStreamer<SparkShufflePartitionBlock, byte[]>> dataStreamerSupplier;
+    private final Supplier<IgniteDataStreamer<SparkShufflePartition, Long>> metadataStreamerSupplier;
     private final int blockSize;
     private final String appId;
 
@@ -36,11 +37,13 @@ public final class IgniteWriteSupport implements ShuffleWriteSupport {
             IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache,
             IgniteCache<SparkShufflePartition, Long> metadataCache,
             Supplier<IgniteDataStreamer<SparkShufflePartitionBlock, byte[]>> dataStreamerSupplier,
+            Supplier<IgniteDataStreamer<SparkShufflePartition, Long>> metadataStreamerSupplier,
             int blockSize,
             String appId) {
         this.dataCache = dataCache;
         this.metadataCache = metadataCache;
         this.dataStreamerSupplier = dataStreamerSupplier;
+        this.metadataStreamerSupplier = metadataStreamerSupplier;
         this.blockSize = blockSize;
         this.appId = appId;
     }
@@ -52,6 +55,7 @@ public final class IgniteWriteSupport implements ShuffleWriteSupport {
                 metadataCache,
                 dataCache,
                 dataStreamerSupplier.get(),
+                metadataStreamerSupplier.get(),
                 appId,
                 shuffleId,
                 mapId,

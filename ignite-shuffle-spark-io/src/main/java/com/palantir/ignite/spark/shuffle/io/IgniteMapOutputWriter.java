@@ -39,6 +39,7 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
     private final IgniteCache<SparkShufflePartition, Long> metadataCache;
     private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
     private final IgniteDataStreamer<SparkShufflePartitionBlock, byte[]> dataStreamer;
+    private final IgniteDataStreamer<SparkShufflePartition, Long> metadataStreamer;
     private final Map<SparkShufflePartition, IgniteShufflePartitionWriter> openedWriters;
     private final String appId;
     private final int shuffleId;
@@ -50,6 +51,7 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
             IgniteCache<SparkShufflePartition, Long> metadataCache,
             IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache,
             IgniteDataStreamer<SparkShufflePartitionBlock, byte[]> dataStreamer,
+            IgniteDataStreamer<SparkShufflePartition, Long> metadataStreamer,
             String appId,
             int shuffleId,
             int mapId,
@@ -58,6 +60,7 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
         this.metadataCache = metadataCache;
         this.dataCache = dataCache;
         this.dataStreamer = dataStreamer;
+        this.metadataStreamer = metadataStreamer;
         this.appId = appId;
         this.shuffleId = shuffleId;
         this.mapId = mapId;
@@ -105,7 +108,8 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
                                 .build())
                 .filter(part -> !numBlocksPerPartition.containsKey(part))
                 .collect(Collectors.toMap(Function.identity(), ignored -> 0L)));
-        metadataCache.putAllAsync(numBlocksPerPartition).get();
+        metadataStreamer.addData(numBlocksPerPartition);
+        metadataStreamer.close();
         openedWriters.clear();
         return Optional.empty();
     }
