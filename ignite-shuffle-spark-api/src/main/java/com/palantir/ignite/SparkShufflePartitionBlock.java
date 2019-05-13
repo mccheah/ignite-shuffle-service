@@ -60,4 +60,9 @@ public final class SparkShufflePartitionBlock implements Serializable {
         return Objects.equals(partition, asBlock.partition)
                 && Objects.equals(blockNumber, asBlock.blockNumber);
     }
+
+    @Override
+    public String toString() {
+        return String.format("Partition: %s\n, Block No. %d", partition, blockNumber);
+    }
 }
