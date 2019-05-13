@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.ignite.SparkShufflePartition;
 import com.palantir.ignite.SparkShufflePartitionBlock;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.Deque;
@@ -131,6 +132,9 @@ public final class IgniteReadSupport implements ShuffleReadSupport {
             }
 
             SparkShufflePartition partToReturn = partitionsToReturn.pop();
+            if (!numBlocksPerPartition.containsKey(partToReturn)) {
+                return new ByteArrayInputStream(new byte[]{});
+            }
             Iterator<InputStream> partitionBlocksInputStream = new Iterator<InputStream>() {
                 private int curBlockIndex = 0;
                 @Override
