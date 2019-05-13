@@ -93,6 +93,9 @@ public final class IgniteShuffleExecutorComponents implements ShuffleExecutorCom
         IgniteConfiguration igniteConfig = new IgniteConfiguration()
                 .setDiscoverySpi(discoverySpi)
                 .setWorkDirectory(tempWorkDir.getAbsolutePath())
+                .setDataStorageConfiguration(new DataStorageConfiguration()
+                        .setDefaultDataRegionConfiguration(new DataRegionConfiguration()
+                                .setPersistenceEnabled(true)))
                 .setClientMode(true);
         ignite = Ignition.start(igniteConfig);
         dataCache = ignite.getOrCreateCache(
