@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
+import org.apache.ignite.transactions.Transaction;
 import org.apache.spark.api.java.Optional;
 import org.apache.spark.api.shuffle.MapShuffleLocations;
 import org.apache.spark.api.shuffle.ShuffleMapOutputWriter;
@@ -36,10 +37,10 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
 
     private static final Logger LOG = LoggerFactory.getLogger(IgniteMapOutputWriter.class);
 
+    private final Transaction mapOutputTransaction;
     private final IgniteCache<SparkShufflePartition, Long> metadataCache;
     private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
     private final IgniteDataStreamer<SparkShufflePartitionBlock, byte[]> dataStreamer;
-    private final IgniteDataStreamer<SparkShufflePartition, Long> metadataStreamer;
     private final Map<SparkShufflePartition, IgniteShufflePartitionWriter> openedWriters;
     private final String appId;
     private final int shuffleId;
@@ -48,19 +49,19 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
     private final int numPartitions;
 
     public IgniteMapOutputWriter(
+            Transaction mapOutputTransaction,
             IgniteCache<SparkShufflePartition, Long> metadataCache,
             IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache,
             IgniteDataStreamer<SparkShufflePartitionBlock, byte[]> dataStreamer,
-            IgniteDataStreamer<SparkShufflePartition, Long> metadataStreamer,
             String appId,
             int shuffleId,
             int mapId,
             int blockSize,
             int numPartitions) {
+        this.mapOutputTransaction = mapOutputTransaction;
         this.metadataCache = metadataCache;
         this.dataCache = dataCache;
         this.dataStreamer = dataStreamer;
-        this.metadataStreamer = metadataStreamer;
         this.appId = appId;
         this.shuffleId = shuffleId;
         this.mapId = mapId;
@@ -108,8 +109,8 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
                                 .build())
                 .filter(part -> !numBlocksPerPartition.containsKey(part))
                 .collect(Collectors.toMap(Function.identity(), ignored -> 0L)));
-        metadataStreamer.addData(numBlocksPerPartition);
-        metadataStreamer.close();
+        metadataCache.putAll(numBlocksPerPartition);
+        mapOutputTransaction.commit();
         openedWriters.clear();
         return Optional.empty();
     }
@@ -124,6 +125,7 @@ public final class IgniteMapOutputWriter implements ShuffleMapOutputWriter {
                 LOG.warn("Failed to revert some partition writes for a partition.", e);
             }
         });
+        mapOutputTransaction.close();
         openedWriters.clear();
     }
 }

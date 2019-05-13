@@ -19,31 +19,37 @@ package com.palantir.ignite.spark.shuffle.io;
 import com.palantir.ignite.SparkShufflePartition;
 import com.palantir.ignite.SparkShufflePartitionBlock;
 import java.util.function.Supplier;
+import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
+import org.apache.ignite.transactions.Transaction;
 import org.apache.spark.api.shuffle.ShuffleMapOutputWriter;
 import org.apache.spark.api.shuffle.ShuffleWriteSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class IgniteWriteSupport implements ShuffleWriteSupport {
 
+    private static final Logger LOG = LoggerFactory.getLogger(IgniteWriteSupport.class);
+
+    private final Ignite ignite;
     private final IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache;
     private final IgniteCache<SparkShufflePartition, Long> metadataCache;
     private final Supplier<IgniteDataStreamer<SparkShufflePartitionBlock, byte[]>> dataStreamerSupplier;
-    private final Supplier<IgniteDataStreamer<SparkShufflePartition, Long>> metadataStreamerSupplier;
     private final int blockSize;
     private final String appId;
 
     public IgniteWriteSupport(
+            Ignite ignite,
             IgniteCache<SparkShufflePartitionBlock, byte[]> dataCache,
             IgniteCache<SparkShufflePartition, Long> metadataCache,
             Supplier<IgniteDataStreamer<SparkShufflePartitionBlock, byte[]>> dataStreamerSupplier,
-            Supplier<IgniteDataStreamer<SparkShufflePartition, Long>> metadataStreamerSupplier,
             int blockSize,
             String appId) {
+        this.ignite = ignite;
         this.dataCache = dataCache;
         this.metadataCache = metadataCache;
         this.dataStreamerSupplier = dataStreamerSupplier;
-        this.metadataStreamerSupplier = metadataStreamerSupplier;
         this.blockSize = blockSize;
         this.appId = appId;
     }
@@ -51,15 +57,25 @@ public final class IgniteWriteSupport implements ShuffleWriteSupport {
     @Override
     public ShuffleMapOutputWriter createMapOutputWriter(
             int shuffleId, int mapId, int numPartitions) {
-        return new IgniteMapOutputWriter(
-                metadataCache,
-                dataCache,
-                dataStreamerSupplier.get(),
-                metadataStreamerSupplier.get(),
-                appId,
-                shuffleId,
-                mapId,
-                blockSize,
-                numPartitions);
+        Transaction mapOutputTransaction = ignite.transactions().txStart();
+        try {
+            return new IgniteMapOutputWriter(
+                    mapOutputTransaction,
+                    metadataCache,
+                    dataCache,
+                    dataStreamerSupplier.get(),
+                    appId,
+                    shuffleId,
+                    mapId,
+                    blockSize,
+                    numPartitions);
+        } catch (Exception e) {
+            try {
+                mapOutputTransaction.close();
+            } catch (Exception e2) {
+                LOG.warn("Failed to abort map output transaction.", e2);
+            }
+            throw e;
+        }
     }
 }
