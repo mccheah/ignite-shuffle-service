@@ -99,13 +99,15 @@ public final class IgniteShuffleExecutorComponents implements ShuffleExecutorCom
                 new CacheConfiguration<SparkShufflePartitionBlock, byte[]>()
                         .setName(dataCacheName)
                         .setCacheMode(CacheMode.PARTITIONED)
-                        .setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC)
+                        .setWriteSynchronizationMode(CacheWriteSynchronizationMode.PRIMARY_SYNC)
+                        .setReadFromBackup(false)
                         .setBackups(2));
         metadataCache = ignite.getOrCreateCache(
                 new CacheConfiguration<SparkShufflePartition, Long>()
                         .setName(metaCacheName)
                         .setCacheMode(CacheMode.PARTITIONED)
-                        .setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC)
+                        .setWriteSynchronizationMode(CacheWriteSynchronizationMode.PRIMARY_SYNC)
+                        .setReadFromBackup(false)
                         .setBackups(2));
         blockSize = sparkConf.getInt("spark.shuffle.ignite.blockSize", 256000);
     }
