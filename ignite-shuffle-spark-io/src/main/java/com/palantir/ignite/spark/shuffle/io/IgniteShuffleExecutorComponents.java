@@ -93,24 +93,19 @@ public final class IgniteShuffleExecutorComponents implements ShuffleExecutorCom
         IgniteConfiguration igniteConfig = new IgniteConfiguration()
                 .setDiscoverySpi(discoverySpi)
                 .setWorkDirectory(tempWorkDir.getAbsolutePath())
-                .setDataStorageConfiguration(new DataStorageConfiguration()
-                        .setDefaultDataRegionConfiguration(new DataRegionConfiguration()
-                                .setPersistenceEnabled(true)))
                 .setClientMode(true);
         ignite = Ignition.start(igniteConfig);
         dataCache = ignite.getOrCreateCache(
                 new CacheConfiguration<SparkShufflePartitionBlock, byte[]>()
                         .setName(dataCacheName)
                         .setCacheMode(CacheMode.PARTITIONED)
-                        .setWriteSynchronizationMode(CacheWriteSynchronizationMode.PRIMARY_SYNC)
-                        .setReadFromBackup(false)
+                        .setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC)
                         .setBackups(2));
         metadataCache = ignite.getOrCreateCache(
                 new CacheConfiguration<SparkShufflePartition, Long>()
                         .setName(metaCacheName)
                         .setCacheMode(CacheMode.PARTITIONED)
-                        .setWriteSynchronizationMode(CacheWriteSynchronizationMode.PRIMARY_SYNC)
-                        .setReadFromBackup(false)
+                        .setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC)
                         .setBackups(2));
         blockSize = sparkConf.getInt("spark.shuffle.ignite.blockSize", 256000);
     }

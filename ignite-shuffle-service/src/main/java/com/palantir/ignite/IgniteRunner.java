@@ -46,10 +46,8 @@ public final class IgniteRunner {
                     .setWorkDirectory(current.workPath().toFile().getAbsolutePath())
                     .setDiscoverySpi(discoverySpi)
                     .setDataStorageConfiguration(new DataStorageConfiguration()
-                            .setStoragePath(current.dataPersistencePath().toFile().getAbsolutePath())
-                            .setDefaultDataRegionConfiguration(new DataRegionConfiguration()
-                                    .setPersistenceEnabled(true)));
-            Ignition.start(igniteConfig).cluster().active(true);
+                            .setStoragePath(current.dataPersistencePath().toFile().getAbsolutePath()));
+            Ignition.start(igniteConfig);
             boolean interrupted = false;
             while (!interrupted) {
                 try {
