@@ -20,11 +20,11 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.shuffle.ShuffleDataIO;
 import org.apache.spark.api.shuffle.ShuffleExecutorComponents;
 
-public final class IgniteShuffleIO implements ShuffleDataIO {
+public final class IgniteShuffleIo implements ShuffleDataIO {
 
     private final SparkConf sparkConf;
 
-    public IgniteShuffleIO(SparkConf sparkConf) {
+    public IgniteShuffleIo(SparkConf sparkConf) {
         this.sparkConf = sparkConf;
     }
 

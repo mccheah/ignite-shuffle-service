@@ -27,6 +27,8 @@ public final class IgniteClientTest {
 
     private static final Logger log = LoggerFactory.getLogger(IgniteClientTest.class);
 
+    private IgniteClientTest() {}
+
     public static void main(String[] args) {
         try {
             JavaSparkContext context = new JavaSparkContext(SparkContext.getOrCreate());

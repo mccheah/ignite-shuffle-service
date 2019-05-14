@@ -18,8 +18,6 @@ import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.configuration.CacheConfiguration;
-import org.apache.ignite.configuration.DataRegionConfiguration;
-import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.kubernetes.TcpDiscoveryKubernetesIpFinder;
@@ -47,8 +45,8 @@ public final class IgniteShuffleExecutorComponents implements ShuffleExecutorCom
     }
 
     @Override
-    public void initializeExecutor(String appId, String execId) {
-        this.appId = appId;
+    public void initializeExecutor(String initializedAppId, String execId) {
+        this.appId = initializedAppId;
         String master = sparkConf.get("spark.master");
         if (!master.startsWith("k8s://")) {
             throw new IllegalArgumentException("Ignite shuffle only supported in Kubernetes.");

@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
-import org.apache.ignite.transactions.Transaction;
 import org.apache.spark.api.java.Optional;
 import org.apache.spark.api.shuffle.MapShuffleLocations;
 import org.apache.spark.api.shuffle.ShuffleMapOutputWriter;

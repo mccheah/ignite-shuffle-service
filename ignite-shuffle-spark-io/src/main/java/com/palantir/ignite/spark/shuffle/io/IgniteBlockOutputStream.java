@@ -20,7 +20,6 @@ import com.palantir.ignite.SparkShufflePartition;
 import com.palantir.ignite.SparkShufflePartitionBlock;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +51,8 @@ public final class IgniteBlockOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(int b) {
-        buffer.put((byte) b);
+    public void write(int byteToWrite) {
+        buffer.put((byte) byteToWrite);
         totalPartitionSize++;
         currentBlockSize++;
         if (currentBlockSize == blockSize) {
